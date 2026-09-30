@@ -1,0 +1,290 @@
+openapi: 3.1.0
+info:
+  title: Financial Integration API
+  description: API para integración de microservicios financieros
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@integracion.com
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor de desarrollo
+  - url: https://api.integracion.com/v1
+    description: Servidor de producción
+
+tags:
+  - name: Transactions
+    description: Operaciones relacionadas con transacciones financieras
+
+paths:
+  /api/v1/transactions:
+    post:
+      tags:
+        - Transactions
+      summary: Crear una nueva transacción
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+      responses:
+        '201':
+          description: Transacción creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Transactions
+      summary: Listar todas las transacciones
+      operationId: getAllTransactions
+      parameters:
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de transacciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionResponse'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/transactions/{transactionId}:
+    get:
+      tags:
+        - Transactions
+      summary: Obtener una transacción por ID
+      operationId: getTransactionById
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Transacción encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '404':
+          description: Transacción no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Transactions
+      summary: Eliminar una transacción
+      operationId: deleteTransaction
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Transacción eliminada exitosamente
+        '404':
+          description: Transacción no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/transactions/{transactionId}/status:
+    patch:
+      tags:
+        - Transactions
+      summary: Actualizar el estado de una transacción
+      operationId: updateTransactionStatus
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusUpdateRequest'
+      responses:
+        '200':
+          description: Estado actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '404':
+          description: Transacción no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    TransactionRequest:
+      type: object
+      required:
+        - accountId
+        - transactionType
+        - amount
+        - currency
+      properties:
+        accountId:
+          type: string
+          description: ID de la cuenta asociada
+          example: "ACC-12345"
+        transactionType:
+          type: string
+          description: Tipo de transacción
+          enum:
+            - DEPOSIT
+            - WITHDRAWAL
+            - TRANSFER
+            - PAYMENT
+          example: "DEPOSIT"
+        amount:
+          type: number
+          description: Monto de la transacción
+          example: 1000.00
+        currency:
+          type: string
+          description: Moneda de la transacción
+          example: "USD"
+        description:
+          type: string
+          description: Descripción opcional
+          example: "Depósito inicial"
+
+    TransactionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID único de la transacción
+        accountId:
+          type: string
+          description: ID de la cuenta
+        transactionType:
+          type: string
+          description: Tipo de transacción
+        amount:
+          type: number
+          description: Monto
+        currency:
+          type: string
+          description: Moneda
+        status:
+          type: string
+          description: Estado de la transacción
+          enum:
+            - PENDING
+            - PROCESSING
+            - COMPLETED
+            - FAILED
+            - CANCELLED
+        timestamp:
+          type: string
+          format: date-time
+          description: Fecha y hora de la transacción
+        description:
+          type: string
+          description: Descripción
+        correlationId:
+          type: string
+          description: ID de correlación para trazabilidad
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de actualización
+
+    StatusUpdateRequest:
+      type: object
+      required:
+        - newStatus
+      properties:
+        newStatus:
+          type: string
+          description: Nuevo estado de la transacción
+          enum:
+            - PENDING
+            - PROCESSING
+            - COMPLETED
+            - FAILED
+            - CANCELLED
+          example: "COMPLETED"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Código de error
+        message:
+          type: string
+          description: Descripción del error
+        timestamp:
+          type: string
+          format: date-time
+          description: Fecha y hora del error
+        path:
+          type: string
+          description: Ruta que generó el error
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
